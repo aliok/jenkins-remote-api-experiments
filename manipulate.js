@@ -10,86 +10,8 @@ var BRANCH = "*/jenkinsfile-experiments";
 Promise.resolve()
     .then(createJob)
     .then(triggerBuild)
-    .then(function (queueNumber) {
-        return new Promise(function (fulfill, reject) {
-            // we check the status here until it leaves the queue
-            // see docs/queue_item_status_example.js for different states
-
-            console.log("Starting checking status of the queue item".green);
-            const interval = setInterval(function () {
-                jenkins.queue.item(queueNumber)
-                    .then(function (data) {
-                        if (data.executable && data.executable.number) {
-                            let buildNumber = data.executable.number;
-                            console.log(`Left the queue. Assigned build number : ${buildNumber}`.green);
-                            clearInterval(interval);
-                            fulfill(buildNumber);
-                        }
-                        else {
-                            let timeInQueue = (new Date().getTime() - data.inQueueSince) / 1000;
-                            timeInQueue = timeInQueue.toFixed(2);
-                            console.log(`In the queue for ${timeInQueue} secs`.green);
-                            console.log("Status: ".green + data.why);
-                        }
-
-                    })
-                    .catch(function (err) {
-                        clearInterval(interval);
-                        reject(err);
-                    });
-
-            }, 1000);
-        });
-    })
-    .then(function (buildNumber) {
-        return new Promise(function (fulfill, reject) {
-            // we check the status of the build here
-            // see docs/build_status_example.js for examples of status
-
-            console.log(`Starting checking status of the build #${buildNumber}`.green);
-
-            const interval = setInterval(function () {
-                jenkins.build.get(JOB_NAME, buildNumber)
-                    .then(function (data) {
-                        if (data.building) {
-                            let timeBuilding = (new Date().getTime() - data.timestamp) / 1000;
-                            let estimatedDuration;
-                            if (data.estimatedDuration && data.estimatedDuration > 0) {
-                                estimatedDuration = (data.estimatedDuration / 1000).toFixed(2) + " secs";
-                            }
-                            else {
-                                estimatedDuration = "UNKNOWN";
-                            }
-
-                            timeBuilding = timeBuilding.toFixed(2);
-                            console.log(`Building since ${timeBuilding} secs, estimated duration: ${estimatedDuration}`.green);
-                        }
-                        else {
-                            let result = data.result;
-                            let duration = (data.duration / 1000).toFixed(2);
-                            let artifacts = data.artifacts;
-
-                            console.log(`Finished build with result : : ${result}. It took ${duration} secs`.green);
-                            if (artifacts) {
-                                console.log("Here are the artifacts".green);
-                                console.log(artifacts);
-                            }
-                            else {
-                                console.log("No artifacts found".green);
-                            }
-
-                            clearInterval(interval);
-                            fulfill(buildNumber);
-                        }
-                    })
-                    .catch(function (err) {
-                        clearInterval(interval);
-                        reject(err);
-                    });
-
-            }, 1000);
-        });
-    })
+    .then(trackQueueItem)
+    .then(trackBuild)
     .catch(function (err) {
         console.error("An error occurred".red.underline);
         console.error(err);
@@ -174,16 +96,88 @@ function triggerBuild(jobName) {
         });
 }
 
-function checkQueueItem(queueNumber) {
-    return Promise.resolve()
-        .then(function () {
-            console.log("Gonna check the status of the build".green);
-            return jenkins.queue.item(queueNumber);
-        })
-        .then(function (queueItemData) {
-            console.log("Fetched queue item data".green);
-            console.log(queueItemData);
-            return queueItemData;
-        });
+
+function trackQueueItem(queueNumber) {
+    return new Promise(function (fulfill, reject) {
+        // we check the status here until it leaves the queue
+        // see docs/queue_item_status_example.js for different states
+
+        console.log("Starting checking status of the queue item".green);
+
+        let recurring = function () {
+            jenkins.queue.item(queueNumber)
+                .then(function (data) {
+                    if (data.executable && data.executable.number) {
+                        let buildNumber = data.executable.number;
+                        console.log(`Left the queue. Assigned build number : ${buildNumber}`.green);
+                        clearInterval(interval);
+                        fulfill(buildNumber);
+                    }
+                    else {
+                        let timeInQueue = (new Date().getTime() - data.inQueueSince) / 1000;
+                        timeInQueue = timeInQueue.toFixed(2);
+                        console.log(`In the queue for ${timeInQueue} secs`.green);
+                        console.log("Status: ".green + data.why);
+                    }
+
+                })
+                .catch(function (err) {
+                    clearInterval(interval);
+                    reject(err);
+                });
+        };
+
+        const interval = setInterval(recurring, 1000);
+    });
 }
 
+function trackBuild(buildNumber) {
+    return new Promise(function (fulfill, reject) {
+        // we check the status of the build here
+        // see docs/build_status_example.js for examples of status
+
+        console.log(`Starting checking status of the build #${buildNumber}`.green);
+
+        let recurring = function () {
+            jenkins.build.get(JOB_NAME, buildNumber)
+                .then(function (data) {
+                    if (data.building) {
+                        let timeBuilding = (new Date().getTime() - data.timestamp) / 1000;
+                        let estimatedDuration;
+                        if (data.estimatedDuration && data.estimatedDuration > 0) {
+                            estimatedDuration = (data.estimatedDuration / 1000).toFixed(2) + " secs";
+                        }
+                        else {
+                            estimatedDuration = "UNKNOWN";
+                        }
+
+                        timeBuilding = timeBuilding.toFixed(2);
+                        console.log(`Building since ${timeBuilding} secs, estimated duration: ${estimatedDuration}`.green);
+                    }
+                    else {
+                        let result = data.result;
+                        let duration = (data.duration / 1000).toFixed(2);
+                        let artifacts = data.artifacts;
+
+                        console.log(`Finished build with result : : ${result}. It took ${duration} secs`.green);
+                        if (artifacts) {
+                            console.log("Here are the artifacts".green);
+                            console.log(artifacts);
+                        }
+                        else {
+                            console.log("No artifacts found".green);
+                        }
+
+                        clearInterval(interval);
+                        fulfill(buildNumber);
+                    }
+                })
+                .catch(function (err) {
+                    clearInterval(interval);
+                    reject(err);
+                });
+        };
+
+        const interval = setInterval(recurring, 1000);
+    });
+}
