@@ -1,6 +1,7 @@
 "use strict";
 
 const colors = require('colors');
+const blessed = require('blessed');
 const jenkins = require('jenkins')({baseUrl: 'http://admin:admin@localhost:8080', crumbIssuer: true, promisify: true});
 
 var JOB_NAME = "helloworld-android-gradle-" + new Date().getTime();
@@ -49,6 +50,9 @@ Promise.resolve()
             console.log(`Starting checking status of the build #${buildNumber}`.green);
 
             const interval = setInterval(function () {
+                let screen;
+                let body;
+
                 jenkins.build.get(JOB_NAME, buildNumber)
                     .then(function (data) {
                         if (data.building) {
@@ -62,7 +66,23 @@ Promise.resolve()
                             }
 
                             timeBuilding = timeBuilding.toFixed(2);
-                            console.log(`Building since ${timeBuilding} secs, estimated duration: ${estimatedDuration}`.green);
+                            if(!screen || !body){
+                                screen = blessed.screen();
+                                body = blessed.box({
+                                        top: 0,
+                                        left: 0,
+                                        width: '100%',
+                                        height: '100%',
+                                        tags: true
+                                    });
+                                screen.append(body);
+                                screen.key(['C-c'], function() {
+                                    return process.exit(0);
+                                });
+                            }
+
+                            body.setLine(0, '{blue-bg}' + `Building since ${timeBuilding} secs, estimated duration: ${estimatedDuration}` + '{/blue-bg}');
+                            screen.render();
                         }
                         else {
                             let result = data.result;
@@ -80,6 +100,10 @@ Promise.resolve()
 
                             clearInterval(interval);
                             fulfill(buildNumber);
+
+                            if(!screen){
+                                screen.destroy();
+                            }
                         }
                     })
                     .catch(function (err) {
@@ -93,6 +117,10 @@ Promise.resolve()
     .catch(function (err) {
         console.error("An error occurred".red.underline);
         console.error(err);
+    })
+    .then(function(){
+        // gotta do this since blessed stops program being terminated
+        process.exit(0);
     });
 
 function createJob() {
