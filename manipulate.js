@@ -138,6 +138,7 @@ function trackBuild(buildNumber) {
 
         console.log(`Starting checking status of the build #${buildNumber}`.green);
 
+        let logStream;
         let recurring = function () {
             jenkins.build.get(JOB_NAME, buildNumber)
                 .then(function (data) {
@@ -153,6 +154,25 @@ function trackBuild(buildNumber) {
 
                         timeBuilding = timeBuilding.toFixed(2);
                         console.log(`Building since ${timeBuilding} secs, estimated duration: ${estimatedDuration}`.green);
+
+                        if(!logStream){
+                            logStream = jenkins.build.logStream(JOB_NAME, buildNumber);
+                            logStream.on('data', function(text) {
+                                let lines = text.split("\n");
+                                for(let line of lines){
+                                    console.log(("  ==BUILD LOG== " + line).gray);
+                                }
+                            });
+
+                            logStream.on('error', function(err) {
+                                console.error('  ==BUILD LOG ERROR=='.red);
+                                console.error(err);
+                            });
+
+                            logStream.on('end', function() {
+                                console.log('  ==BUILD LOG== <FIN>'.gray);
+                            })
+                        }
                     }
                     else {
                         let result = data.result;
