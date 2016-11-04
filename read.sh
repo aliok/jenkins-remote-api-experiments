@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+JENKINS_URL="http://localhost:8080"
+JENKINS_USER="admin"
+JENKINS_PASSWORD="admin"
+JOB_TO_READ="hello-world-gradle"
+
+
 function redecho {
     #    .---------- constant part!
     #    vvvv vvvv-- the code from above
@@ -7,11 +13,6 @@ function redecho {
     NC='\033[0m' # No Color
     echo -e "${RED}$1${NC}"
 }
-
-JENKINS_URL="http://localhost:8080"
-JENKINS_USER="admin"
-JENKINS_PASSWORD="admin"
-JOB_TO_READ="hello-world-gradle"
 
 ################################################ read all jobs
 redecho "Gonna read Jenkins jobs"

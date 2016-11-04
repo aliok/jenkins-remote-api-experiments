@@ -3,14 +3,12 @@
 const colors = require('colors');
 const jenkins = require('jenkins')({baseUrl: 'http://admin:admin@localhost:8080', crumbIssuer: true, promisify: true});
 
-let jobName;
+var JOB_NAME = "helloworld-android-gradle-" + new Date().getTime();
+var REPOSITORY = "https://github.com/aliok/helloworld-android-gradle.git";
+var BRANCH = "*/jenkinsfile-experiments";
 
 Promise.resolve()
     .then(createJob)
-    .then(function (receivedJobName) {
-        jobName = receivedJobName;
-        return jobName;
-    })
     .then(triggerBuild)
     .then(function (queueNumber) {
         return new Promise(function (fulfill, reject) {
@@ -51,7 +49,7 @@ Promise.resolve()
             console.log(`Starting checking status of the build #${buildNumber}`.green);
 
             const interval = setInterval(function () {
-                jenkins.build.get(jobName, buildNumber)
+                jenkins.build.get(JOB_NAME, buildNumber)
                     .then(function (data) {
                         if (data.building) {
                             let timeBuilding = (new Date().getTime() - data.timestamp) / 1000;
@@ -98,10 +96,6 @@ Promise.resolve()
     });
 
 function createJob() {
-    var JOB_NAME = "helloworld-android-gradle-" + new Date().getTime();
-    var REPOSITORY = "https://github.com/aliok/helloworld-android-gradle.git";
-    var BRANCH = "*/jenkinsfile-experiments";
-
     return Promise.resolve()
         .then(function () {
             console.log("Gonna create a job".green);

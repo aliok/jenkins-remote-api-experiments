@@ -22,3 +22,7 @@ Files:
 * docs/queue_item_status_example.js: ordered examples of different state of a queue item. when item leaves the queue, the state will be fixed.
 
 * docs/build_status_example.js: ordered examples of different state of a build
+
+
+Change stuff in read.sh and manipulate.sh for your needs.
+Things to change are defined on top in both files.
