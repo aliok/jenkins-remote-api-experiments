@@ -1,0 +1,23 @@
+{
+  "name": "jenkins-remote-api-experiments",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aliok/jenkins-remote-api-experiments.git"
+  },
+  "author": "",
+  "license": "Apache License 2.0",
+  "bugs": {
+    "url": "https://github.com/aliok/jenkins-remote-api-experiments/issues"
+  },
+  "homepage": "https://github.com/aliok/jenkins-remote-api-experiments#readme",
+  "dependencies": {
+    "colors": "^1.1.2",
+    "jenkins": "^0.19.0"
+  }
+}
